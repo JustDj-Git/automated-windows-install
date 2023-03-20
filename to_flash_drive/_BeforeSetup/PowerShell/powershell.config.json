@@ -1,0 +1,22 @@
+{
+  "WindowsPowerShellCompatibilityModuleDenyList": [
+    "PSScheduledJob",
+    "BestPractices",
+    "UpdateServices"
+  ],
+  "Microsoft.PowerShell:ExecutionPolicy": "RemoteSigned",
+  "ExperimentalFeatures": [
+    "PSAMSIMethodInvocationLogging",
+    "PSAnsiRenderingFileInfo",
+    "PSCleanBlock",
+    "PSCommandNotFoundSuggestion",
+    "PSExec",
+    "PSLoadAssemblyFromNativeCode",
+    "PSNativeCommandArgumentPassing",
+    "PSNativeCommandErrorActionPreference",
+    "PSNativePSPathResolution",
+    "PSRemotingSSHTransportErrorHandling",
+    "PSStrictModeAssignment",
+    "PSSubsystemPluginModel"
+  ]
+}
