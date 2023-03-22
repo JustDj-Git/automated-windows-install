@@ -7,9 +7,9 @@
 ├── to_flash_drive
     ├── _Copy_
         ├── to_Desktop
-			├── place files to copy to Desktop
-		├── to_Documents
-			├── place files to copy to Documents
+		├── place files to copy to Desktop
+	├── to_Documents
+		├── place files to copy to Documents
     ├── sources
         ├── $OEM$
             ├── $$
@@ -18,17 +18,17 @@
                         ├── SetupComplete.cmd
             ├── $1
                 ├── Install
-					├──  _Logs
-						├──  
-                    ├── apps
-                        ├──  EXE files to install
-                    ├── powershell
-                        ├──  PowerShell scripts
-                    ├── bats
-						├── bats_HERE
-							├──  place .bat's files HERE
-                    ├── Wifi_Profile
-                        ├──  Wi-fi profile
+			├──  _Logs
+				├──  
+			├── apps
+				├──  EXE files to install
+			├── powershell
+				├──  PowerShell scripts
+			├── bats
+				├── bats_HERE
+					├──  place .bat's files HERE
+			├── Wifi_Profile
+				├── place Wi-fi profiles HERE
    ├── autounattend.xml
 ├── README.md
 └── .gitignore
