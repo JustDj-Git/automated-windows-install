@@ -87,7 +87,7 @@
                         <Path>install.esd</Path>
                         <MetaData wcm:action="add">
                             <Key>/IMAGE/NAME</Key>
-                            <Value>Windows 10 Home</Value>
+                            <Value>Windows 11 Pro</Value>
                         </MetaData>
                     </InstallFrom>
                     <WillShowUI>OnError</WillShowUI>
