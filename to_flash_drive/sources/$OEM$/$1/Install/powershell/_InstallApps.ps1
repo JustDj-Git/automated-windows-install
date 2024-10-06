@@ -8,6 +8,7 @@ function Get-FormattedDate {
 }
 
 "$(Get-FormattedDate) Install apps" >> $logpath
-# example: Start-Process -Wait -FilePath "$Env:HOMEDRIVE\Install\Apps\vc_redist.x64.exe" -ArgumentList '/install /quiet /norestart' -PassThru >> $logpath
+Start-Process -Wait -FilePath "$Env:HOMEDRIVE\Install\Apps\vc_redist.x64.exe" -ArgumentList '/install /quiet /norestart' -PassThru >> $logpath
+Start-Process -Wait -FilePath "$Env:HOMEDRIVE\Install\Apps\TeamViewer_Setup.exe" -ArgumentList '/S' -PassThru >> $logpath
 "$(Get-FormattedDate) Apps installed" >> $logpath
 Stop-Transcript

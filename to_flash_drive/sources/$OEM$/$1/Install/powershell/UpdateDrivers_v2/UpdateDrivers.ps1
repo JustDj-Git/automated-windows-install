@@ -5,7 +5,8 @@ Import-Module ImportWiFi
 $logpath = "$Env:HOMEDRIVE\Install\_Logs\UpdateDrivers.log"
 $BootCount = Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters'
 $taskName = 'Check Drivers v2'
-function DoWork {
+
+function FinalTask {
 	## Net tweaks
 	#Get-NetConnectionProfile -Name 'Office-net' | Set-NetConnectionProfile -NetworkCategory Private
 	netsh advfirewall firewall set rule group="network discovery" new enable=yes
@@ -19,22 +20,13 @@ function DoWork {
 	$pause = $pause.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") 
 	Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' -Name 'PauseUpdatesExpiryTime' -Value $pause
 	##
-	Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+	Enable-ScheduledTask -TaskName 'RunApps'
 	##
-	$b = '
-
-
-██████   ██████  ███    ██ ███████ 
-██   ██ ██    ██ ████   ██ ██      
-██   ██ ██    ██ ██ ██  ██ █████   
-██   ██ ██    ██ ██  ██ ██ ██      
-██████   ██████  ██   ████ ███████ 
-
-
-'
-	Shout $b -color 'Green'
-	Start-Process "devmgmt.msc" -Wait
-	Start-Process -FilePath "$Env:HOMEDRIVE\BIT\bit.exe" -ArgumentList '-lv -m -r'
+	Stop-ScheduledTask -TaskName 'Task Handle'
+	Disable-ScheduledTask -TaskName 'Task Handle'
+	Disable-ScheduledTask -TaskName "$taskName"
+	Shout "Restarting..."
+	Restart-Computer
 }
 
 function Shout {
@@ -47,6 +39,7 @@ function Shout {
     $date = (Get-Date -Format "MM/dd/yyyy HH:mm:ss").ToString()
     $finaltext = $date + ' ' + $text
     $finaltext >> $logpath
+
     if ($color){
         Write-Host $finaltext -ForegroundColor $color
     } else {
@@ -54,65 +47,67 @@ function Shout {
     }
 }
 
-Shout "Script starting"
+function CheckInet {
+	$timer = [Diagnostics.Stopwatch]::StartNew()
 
-##Check inet
-$timer = [Diagnostics.Stopwatch]::StartNew()
-
-do {
-    $inet = Test-Connection -ComputerName www.google.com -Quiet
-    if ($inet -eq $false) {
-		ImportWiFi
-		if ($timer.elapsed.TotalMinutes -le 2) {
-			Shout "No internet! Waiting for it 10 sec and recheck" -color 'Red'
-			Start-Sleep 10
+	do {
+		$inet = Test-Connection -ComputerName www.google.com -Quiet
+		if ($inet -eq $false) {
+			ImportWiFi
+			if ($timer.elapsed.TotalMinutes -le 2) {
+				Shout "No internet! Waiting for it 10 sec and recheck" -color 'Red'
+				Start-Sleep 10
+			} else {
+				Shout "2 minutes are over. reboot"
+				Restart-Computer
+			}
 		} else {
-			Shout "2 minutes are over. reboot"
-			Restart-Computer
+			Shout "Internet detected" -color 'Green'
 		}
-    } else {
-		Shout "Internet detected" -color 'Green'
-    }
-} while ($inet -eq $false)
+	} while ($inet -eq $false)
 
-$timer.Stop()
-$timer.Reset()
-####################
-
-$ErrorActionPreference = "SilentlyContinue"
-if ($Error) {
-	$Error.Clear()
+	$timer.Stop()
+	$timer.Reset()
 }
 
+####################
+## Windows Update Service setup
+####################
+Shout "Script starting"
+
+CheckInet
+
+$ErrorActionPreference = "SilentlyContinue"
+if ($Error) {$Error.Clear()}
+
 try {
-      $UpdateSvc = New-Object -ComObject Microsoft.Update.ServiceManager
-      $UpdateSvc.AddService2("7971f918-a847-4430-9279-4a52d1efe18d",7,"")
-      $Session = New-Object -ComObject Microsoft.Update.Session
-      $Searcher = $Session.CreateUpdateSearcher()
-    } catch {
-		  return
-    }
+	$UpdateSvc = New-Object -ComObject Microsoft.Update.ServiceManager
+	$UpdateSvc.AddService2("7971f918-a847-4430-9279-4a52d1efe18d",7,"")
+	$Session = New-Object -ComObject Microsoft.Update.Session
+	$Searcher = $Session.CreateUpdateSearcher()
+} catch {
+	return
+}
 
 $Searcher.ServiceID = '7971f918-a847-4430-9279-4a52d1efe18d'
 $Searcher.SearchScope =  1 # MachineOnly
 $Searcher.ServerSelection = 3 # Third Party
-          
+
+## Search for driver updates
 $Criteria = "IsInstalled=0 and Type='Driver' and IsHidden=0"
 Shout 'Searching Drivers Updates...' -color 'Green'
 $SearchResult = $Searcher.Search($Criteria)
 
 If ($SearchResult.Updates.Count -eq 0) {
-  Shout 'There are no applicable updates for this computer' -color 'Green'
-  $updateSvc.Services | ? { $_.IsDefaultAUService -eq $false -and $_.ServiceID -eq "7971f918-a847-4430-9279-4a52d1efe18d" } | % { $UpdateSvc.RemoveService($_.ServiceID) }
-	DoWork
+	Shout 'There are no applicable updates for this computer' -color 'Green'
+	$updateSvc.Services | ? { $_.IsDefaultAUService -eq $false -and $_.ServiceID -eq "7971f918-a847-4430-9279-4a52d1efe18d" } | % { $UpdateSvc.RemoveService($_.ServiceID) }
+	FinalTask
 } else {
+	## Display available updates
 	$Updates = $SearchResult.Updates
-	
-	#Show available
 	$logIt = $Updates | select Title, DriverModel, DriverVerDate | ft | Out-String
 	$logIt >> $logpath
-	
-  Shout "$logIt" -color 'Gray'
+	Shout "$logIt" -color 'Gray'
 
 	##Download drivers
 	$UpdatesToDownload = New-Object -Com Microsoft.Update.UpdateColl
@@ -125,7 +120,7 @@ If ($SearchResult.Updates.Count -eq 0) {
 		$Downloader.Download()
 	} catch {
 		Shout 'Nothing to download' -color Green
-		DoWork
+		FinalTask
 		exit
 	}
 	
@@ -133,7 +128,8 @@ If ($SearchResult.Updates.Count -eq 0) {
 	
 	##Install drivers
 	$UpdatesToInstall = New-Object -Com Microsoft.Update.UpdateColl
-	$updates | % { if($_.IsDownloaded) { $UpdatesToInstall.Add($_) | out-null } }
+	$updates | % { if($_.IsDownloaded) { $UpdatesToInstall.Add($_) | Out-Null } }
+
 	Shout 'Installing Drivers...' -color Green
 	$Installer = $UpdateSession.CreateUpdateInstaller()
 	$Installer.Updates = $UpdatesToInstall
@@ -151,9 +147,9 @@ If ($SearchResult.Updates.Count -eq 0) {
 }
 
 if ($BootCount.BootId -gt '5'){
-    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+	Disable-ScheduledTask -TaskName "$taskName"
     Shout "Task Removed bec it's $($BootCount.BootId) reboot" -color Red
-		$b = "
+	$b = "
 ==============================================
 
 ███████ ██████  ██████   ██████  ██████  
@@ -168,12 +164,12 @@ if ($BootCount.BootId -gt '5'){
 	pause
 }
 
-
+## Reboot if necessary
 if ($reboot_need -eq $true){
-  Shout 'Rebooting!' -color Red
-  Shout '=========='
-  Start-Sleep 5
+	Shout 'Rebooting!' -color Red
+	Shout '=========='
+	Start-Sleep 5
 	Restart-Computer
 } else {
-	DoWork
+	FinalTask
 }
