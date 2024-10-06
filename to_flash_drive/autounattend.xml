@@ -8,7 +8,7 @@
             <InputLocale>0409:00000409</InputLocale>
             <SystemLocale>en-US</SystemLocale>
             <UILanguage>en-US</UILanguage>
-            <UILanguageFallback></UILanguageFallback>
+            <UILanguageFallback>en-US</UILanguageFallback>
             <UserLocale>en-US</UserLocale>
         </component>
         <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -84,10 +84,9 @@
                     </InstallTo>
                     <InstallToAvailablePartition>false</InstallToAvailablePartition>
                     <InstallFrom>
-                        <Path>install.esd</Path>
                         <MetaData wcm:action="add">
                             <Key>/IMAGE/NAME</Key>
-                            <Value>Windows 11 Pro</Value>
+                            <Value>Windows 11 Home</Value>
                         </MetaData>
                     </InstallFrom>
                     <WillShowUI>OnError</WillShowUI>
@@ -104,14 +103,19 @@
             </UserData>
             <RunSynchronous>
                 <RunSynchronousCommand wcm:action="add">
-                    <Order>2</Order>
-                    <Description>Diskpart</Description>
-                    <Path>cmd /C for %d in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do if exist &quot;%d:\_BeforeSetup&quot; (%d:\_BeforeSetup\PowerShell\pwsh.exe -executionPolicy bypass -File %d:\_BeforeSetup\DiskPart.ps1)</Path>
-                </RunSynchronousCommand>
-                <RunSynchronousCommand wcm:action="add">
                     <Order>1</Order>
                     <Description>Bypass</Description>
-                    <Path>cmd /C for %d in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do if exist &quot;%d:\_BeforeSetup&quot; (regedit /S %d:\_BeforeSetup\bypass.reg)</Path>
+                    <Path>cmd /c for %a in (TPM RAM SecureBoot) do reg add HKLM\SYSTEM\Setup\LabConfig /t REG_DWORD /v Bypass%aCheck /d 1 /f</Path>
+                </RunSynchronousCommand>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>2</Order>
+                    <Description>Diskpart</Description>
+                    <Path>cmd /C for %d in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do if exist &quot;%d:\_BeforeSetup&quot; %d:\_BeforeSetup\Diskpart.bat</Path>
+                </RunSynchronousCommand>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>3</Order>
+                    <Description>DriversInstall in PE</Description>
+                    <Path>cmd /C for %d in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do if exist &quot;%d:\_BeforeSetup&quot; %d:\_BeforeSetup\DriversInstall_InPE.bat</Path>
                 </RunSynchronousCommand>
             </RunSynchronous>
             <UseConfigurationSet>true</UseConfigurationSet>
@@ -119,7 +123,7 @@
         <component name="Microsoft-Windows-PnpCustomizationsWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <DriverPaths>
                 <PathAndCredentials wcm:action="add" wcm:keyValue="1">
-                    <Path>%configsetroot%\_BeforeSetup\Drivers\</Path>
+                    <Path>%configsetroot%\_BeforeSetup\Drivers_PE\</Path>
                 </PathAndCredentials>
             </DriverPaths>
         </component>
@@ -139,7 +143,7 @@
             <InputLocale>0409:00000409</InputLocale>
             <SystemLocale>en-US</SystemLocale>
             <UILanguage>en-US</UILanguage>
-            <UILanguageFallback></UILanguageFallback>
+            <UILanguageFallback>en-US</UILanguageFallback>
             <UserLocale>en-US</UserLocale>
         </component>
         <component name="Microsoft-Windows-SQMApi" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -149,8 +153,8 @@
             <RunSynchronous>
                 <RunSynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>DriversInstall</Description>
-                    <Path>cmd /C for %d in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do if exist &quot;%d:\_BeforeSetup&quot; (%d:\_BeforeSetup\PowerShell\pwsh.exe -executionPolicy bypass -File %d:\_BeforeSetup\DriversInstall.ps1)</Path>
+                    <Description>DriversInstall in OS</Description>
+                    <Path>cmd /C for %d in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do if exist &quot;%d:\_BeforeSetup&quot; %d:\_BeforeSetup\DriversInstall_InOs.bat</Path>
                 </RunSynchronousCommand>
             </RunSynchronous>
         </component>
@@ -228,7 +232,7 @@
                 <SynchronousCommand wcm:action="add">
                     <Order>500</Order>
                     <RequiresUserInput>true</RequiresUserInput>
-                    <CommandLine>powershell.exe -File &quot;C:\Install\powershell\UpdateDrivers_v2\CreateTask.ps1&quot;</CommandLine>
+                    <CommandLine>powershell.exe -File &quot;C:\Install\powershell\_CreateTasks.ps1&quot;</CommandLine>
                     <Description>Update Drivers</Description>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
@@ -249,15 +253,9 @@
                     <Description>Install Apps</Description>
                     <CommandLine>powershell.exe -File &quot;C:\Install\powershell\_InstallApps.ps1&quot;</CommandLine>
                 </SynchronousCommand>
-                <SynchronousCommand wcm:action="add">
-                    <Order>498</Order>
-                    <CommandLine>powershell.exe -File &quot;C:\Install\powershell\ResetWIN\CreateTask.ps1&quot;</CommandLine>
-                    <RequiresUserInput>true</RequiresUserInput>
-                    <Description>ResetWIN</Description>
-                </SynchronousCommand>
             </FirstLogonCommands>
             <TimeZone>Eastern Standard Time</TimeZone>
         </component>
     </settings>
-    <cpi:offlineImage cpi:source="wim:f:/torrents/os/win11.wim#Windows 11 Pro" xmlns:cpi="urn:schemas-microsoft-com:cpi" />
+    <cpi:offlineImage cpi:source="wim://justdj-pc/%D1%82%D0%BE%D1%80%D1%80%D0%B5%D0%BD%D1%82%D1%8B/_windows/_forproject/somefiles/install.wim#Windows 10 Pro" xmlns:cpi="urn:schemas-microsoft-com:cpi" />
 </unattend>
