@@ -24,7 +24,7 @@ for /f %%i in ('%SystemDrive%\Install\bats\fping\fping.exe -agq !subnet!0/24 2^>
     for /f "tokens=4 delims=." %%x in ("%%i") do (
         if %%x neq 1 (
             echo Host %%i is reachable. Checking for shared folder %sharedFolder%... >> %SystemDrive%\Install\_Logs\CopyTestLog.log
-			dir "\\%%i\%sharedFolder%" >nul 2>&1
+            dir "\\%%i\%sharedFolder%" >nul 2>&1
             if !errorlevel! equ 0 (
                 echo Shared folder found on %%i >> %SystemDrive%\Install\_Logs\CopyTestLog.log
                 set foundPC=%%i
@@ -43,7 +43,7 @@ goto :eof
 
 :mount_share
 echo Mounting shared folder from \\!foundPC!\%sharedFolder% to drive X:... >> %SystemDrive%\Install\_Logs\CopyTestLog.log
-net use x: \\!foundPC!\%sharedFolder% /persistent:no
+net use x: "\\!foundPC!\%sharedFolder%" /persistent:no
 if !errorlevel! equ 0 (
     echo Folder successfully mounted to x: >> %SystemDrive%\Install\_Logs\CopyTestLog.log
 	goto :copy_logs
