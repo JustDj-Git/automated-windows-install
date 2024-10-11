@@ -5,6 +5,7 @@ Import-Module ImportWiFi
 $logpath = "$Env:HOMEDRIVE\Install\_Logs\UpdateDrivers.log"
 $BootCount = Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters'
 $taskName = 'Check Drivers v2'
+$taskHandleName = 'Task Handle'
 
 function FinalTask {
 	## Net tweaks
@@ -12,7 +13,7 @@ function FinalTask {
 	netsh advfirewall firewall set rule group="network discovery" new enable=yes
 	netsh advfirewall firewall set rule group="File and Printer Sharing" new enable=yes
 	##
-	Remove-Item -path "$Env:HOMEDRIVE\BIT\files\*"
+	Remove-Item -path "$Env:HOMEDRIVE\BIT\Files\*"
 	##Disable Bit
 	Disable-Bitlocker -MountPoint "C:" | out-null
 	##Pause updates
@@ -22,8 +23,8 @@ function FinalTask {
 	##
 	Enable-ScheduledTask -TaskName 'RunApps'
 	##
-	Stop-ScheduledTask -TaskName 'Task Handle'
-	Disable-ScheduledTask -TaskName 'Task Handle'
+	Stop-ScheduledTask -TaskName "$taskHandleName"
+	Disable-ScheduledTask -TaskName "$taskHandleName"
 	Disable-ScheduledTask -TaskName "$taskName"
 	Shout "Restarting..."
 	Restart-Computer
@@ -47,6 +48,13 @@ function Shout {
     }
 }
 
+function TimeSync {
+	Shout "Sync time with servers"
+	Start-Service w32time
+	w32tm /resync /force
+	Shout "Sync done"  -color 'Green'
+}
+
 function CheckInet {
 	$timer = [Diagnostics.Stopwatch]::StartNew()
 
@@ -54,8 +62,8 @@ function CheckInet {
 		$inet = Test-Connection -ComputerName www.google.com -Quiet
 		if ($inet -eq $false) {
 			ImportWiFi
+			Shout "No internet! Waiting for it and recheck" -color 'Red'
 			if ($timer.elapsed.TotalMinutes -le 2) {
-				Shout "No internet! Waiting for it 10 sec and recheck" -color 'Red'
 				Start-Sleep 10
 			} else {
 				Shout "2 minutes are over. reboot"
@@ -76,6 +84,7 @@ function CheckInet {
 Shout "Script starting"
 
 CheckInet
+TimeSync
 
 $ErrorActionPreference = "SilentlyContinue"
 if ($Error) {$Error.Clear()}
@@ -148,6 +157,8 @@ If ($SearchResult.Updates.Count -eq 0) {
 
 if ($BootCount.BootId -gt '5'){
 	Disable-ScheduledTask -TaskName "$taskName"
+	Stop-ScheduledTask -TaskName "$taskHandleName"
+	Disable-ScheduledTask -TaskName "$taskHandleName"
     Shout "Task Removed bec it's $($BootCount.BootId) reboot" -color Red
 	$b = "
 ==============================================
