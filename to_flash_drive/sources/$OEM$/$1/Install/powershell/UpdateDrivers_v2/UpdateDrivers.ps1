@@ -50,8 +50,8 @@ function Shout {
 
 function TimeSync {
 	Shout "Sync time with servers"
-	Start-Service w32time
-	w32tm /resync /force
+	Start-Service w32time | out-null 
+	w32tm /resync /force | out-null 
 	Shout "Sync done"  -color 'Green'
 }
 
@@ -120,7 +120,7 @@ If ($SearchResult.Updates.Count -eq 0) {
 
 	##Download drivers
 	$UpdatesToDownload = New-Object -Com Microsoft.Update.UpdateColl
-	$updates | where {($_.Title -Notlike "*Firmware*") -or ($_.Title -Notlike "*Intel - net*") -or ($_.Title -Notlike "*System*")} | % { $UpdatesToDownload.Add($_) | out-null }
+	$updates | Where-Object {$_.Title -notlike "*Firmware*"} | ForEach-Object { $UpdatesToDownload.Add($_) | out-null }
 	$UpdateSession = New-Object -Com Microsoft.Update.Session
 	$Downloader = $UpdateSession.CreateUpdateDownloader()
 	$Downloader.Updates = $UpdatesToDownload
